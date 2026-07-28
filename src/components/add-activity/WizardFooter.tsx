@@ -20,7 +20,9 @@ export function WizardFooter({ buttonLabel, onContinue, continueDisabled }: Prop
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
       <PrimaryButton
         label={buttonLabel!}
-        onPress={onContinue!}
+        onPress={() => {
+          onContinue?.();
+        }}
         disabled={continueDisabled}
       />
     </View>

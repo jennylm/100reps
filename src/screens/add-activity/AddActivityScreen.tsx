@@ -48,13 +48,14 @@ export function AddActivityScreen({ onCancel, onComplete }: Props) {
 
   const finish = async (visibilityOverride?: ActivityVisibility) => {
     if (creating) return;
+    // Guard: Pressable may pass a synthetic event if finish is used as onPress.
+    const visibility =
+      visibilityOverride === 'public' || visibilityOverride === 'private'
+        ? visibilityOverride
+        : undefined;
     setCreating(true);
     try {
-      await onComplete(
-        visibilityOverride
-          ? { ...draft, visibility: visibilityOverride }
-          : draft,
-      );
+      await onComplete(visibility ? { ...draft, visibility } : draft);
     } finally {
       setCreating(false);
     }
@@ -116,7 +117,9 @@ export function AddActivityScreen({ onCancel, onComplete }: Props) {
             patchDraft({ visibility });
           }}
           onBack={goBack}
-          onContinue={finish}
+          onContinue={(visibility) => {
+            void finish(visibility);
+          }}
         />
       ) : null}
 
