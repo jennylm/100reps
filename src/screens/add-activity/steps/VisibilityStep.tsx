@@ -11,7 +11,7 @@ type Props = {
   busy?: boolean;
   onChangeVisibility: (visibility: ActivityVisibility) => void;
   onBack: () => void;
-  onContinue: () => void;
+  onContinue: (visibility?: ActivityVisibility) => void;
 };
 
 export function VisibilityStep({
@@ -24,7 +24,7 @@ export function VisibilityStep({
   const choose = (next: ActivityVisibility) => {
     if (busy) return;
     onChangeVisibility(next);
-    onContinue();
+    onContinue(next);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -45,28 +45,18 @@ function formatStampLabel(date: Date): string {
   return `Date ${day} · ${time}`;
 }
 
-export function LogRepModal({
-  visible,
+function LogRepForm({
   activityName,
   nextRepNumber,
   goal,
   accentColor,
   onClose,
   onSubmit,
-}: Props) {
+}: Omit<Props, 'visible'>) {
   const [note, setNote] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [stampLabel, setStampLabel] = useState(() => formatStampLabel(new Date()));
+  const [stampLabel] = useState(() => formatStampLabel(new Date()));
   const [screening, setScreening] = useState(false);
-
-  useEffect(() => {
-    if (visible) {
-      setNote('');
-      setImageUri(null);
-      setStampLabel(formatStampLabel(new Date()));
-      setScreening(false);
-    }
-  }, [visible]);
 
   const acceptScreenedPhoto = async (uri: string) => {
     setScreening(true);
@@ -128,6 +118,85 @@ export function LogRepModal({
   };
 
   return (
+    <>
+      <View style={styles.handle} />
+      <Text style={styles.title}>Log a Rep</Text>
+      <Text style={styles.subtitle}>
+        {activityName} ·{' '}
+        <Text style={[styles.repHighlight, { color: accentColor }]}>
+          Rep {nextRepNumber}
+        </Text>{' '}
+        of {goal}
+      </Text>
+
+      <View style={styles.dateBox}>
+        <Text style={styles.dateText}>{stampLabel}</Text>
+      </View>
+
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder="What did you do? (optional)"
+        placeholderTextColor={colors.muted}
+        multiline
+        style={[styles.noteInput, { borderColor: `${accentColor}55` }]}
+        textAlignVertical="top"
+      />
+
+      <Pressable
+        onPress={choosePhoto}
+        disabled={screening}
+        style={({ pressed }) => [
+          styles.photoBox,
+          pressed && !screening && styles.pressed,
+          screening && styles.photoBoxBusy,
+        ]}
+      >
+        {screening ? (
+          <View style={styles.screeningRow}>
+            <ActivityIndicator color={accentColor} />
+            <Text style={styles.photoPlaceholder}>Checking photo…</Text>
+          </View>
+        ) : imageUri ? (
+          <View style={styles.photoPreviewWrap}>
+            <Image source={{ uri: imageUri }} style={styles.photoPreview} />
+            <Text style={styles.photoChange}>Tap to change</Text>
+          </View>
+        ) : (
+          <Text style={styles.photoPlaceholder}>Add photo evidence</Text>
+        )}
+      </Pressable>
+
+      <Pressable
+        onPress={() =>
+          onSubmit({
+            note: note.trim(),
+            imageUrl: imageUri ?? undefined,
+          })
+        }
+        disabled={screening}
+        style={({ pressed }) => [
+          styles.submit,
+          { backgroundColor: accentColor },
+          (pressed || screening) && styles.pressed,
+        ]}
+      >
+        <Text style={styles.submitLabel}>Count it ✓</Text>
+      </Pressable>
+    </>
+  );
+}
+
+export function LogRepModal({
+  visible,
+  activityName,
+  nextRepNumber,
+  goal,
+  accentColor,
+  onClose,
+  onSubmit,
+}: Props) {
+  return (
     <Modal
       visible={visible}
       animationType="slide"
@@ -140,70 +209,17 @@ export function LogRepModal({
       >
         <Pressable style={styles.dismissArea} onPress={onClose} />
         <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Log a Rep</Text>
-          <Text style={styles.subtitle}>
-            {activityName} ·{' '}
-            <Text style={[styles.repHighlight, { color: accentColor }]}>
-              Rep {nextRepNumber}
-            </Text>{' '}
-            of {goal}
-          </Text>
-
-          <View style={styles.dateBox}>
-            <Text style={styles.dateText}>{stampLabel}</Text>
-          </View>
-
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder="What did you do? (optional)"
-            placeholderTextColor={colors.muted}
-            multiline
-            style={[styles.noteInput, { borderColor: `${accentColor}55` }]}
-            textAlignVertical="top"
-          />
-
-          <Pressable
-            onPress={choosePhoto}
-            disabled={screening}
-            style={({ pressed }) => [
-              styles.photoBox,
-              pressed && !screening && styles.pressed,
-              screening && styles.photoBoxBusy,
-            ]}
-          >
-            {screening ? (
-              <View style={styles.screeningRow}>
-                <ActivityIndicator color={accentColor} />
-                <Text style={styles.photoPlaceholder}>Checking photo…</Text>
-              </View>
-            ) : imageUri ? (
-              <View style={styles.photoPreviewWrap}>
-                <Image source={{ uri: imageUri }} style={styles.photoPreview} />
-                <Text style={styles.photoChange}>Tap to change</Text>
-              </View>
-            ) : (
-              <Text style={styles.photoPlaceholder}>Add photo evidence</Text>
-            )}
-          </Pressable>
-
-          <Pressable
-            onPress={() =>
-              onSubmit({
-                note: note.trim(),
-                imageUrl: imageUri ?? undefined,
-              })
-            }
-            disabled={screening}
-            style={({ pressed }) => [
-              styles.submit,
-              { backgroundColor: accentColor },
-              (pressed || screening) && styles.pressed,
-            ]}
-          >
-            <Text style={styles.submitLabel}>Count it ✓</Text>
-          </Pressable>
+          {visible ? (
+            <LogRepForm
+              key={`log-${nextRepNumber}`}
+              activityName={activityName}
+              nextRepNumber={nextRepNumber}
+              goal={goal}
+              accentColor={accentColor}
+              onClose={onClose}
+              onSubmit={onSubmit}
+            />
+          ) : null}
         </View>
       </KeyboardAvoidingView>
     </Modal>

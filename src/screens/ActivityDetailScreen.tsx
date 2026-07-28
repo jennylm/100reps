@@ -14,55 +14,55 @@ import {
 import { ProgressOverview } from '../components/activity-detail/ProgressOverview';
 import { RepLogSection } from '../components/activity-detail/RepLogSection';
 import { colors } from '../theme/colors';
-import type { Category } from '../types';
+import type { Activity } from '../types';
 
 type Props = {
-  category: Category;
+  activity: Activity;
   onBack: () => void;
   onLogRep: (payload: LogRepPayload) => void;
   onEditRep: (repId: string, note: string) => void;
   onDeleteRep: (repId: string) => void;
-  onEditCategory: (payload: EditActivityPayload) => void | Promise<void>;
-  onDeleteCategory: () => void;
+  onEditActivity: (payload: EditActivityPayload) => void | Promise<void>;
+  onDeleteActivity: () => void;
 };
 
 export function ActivityDetailScreen({
-  category,
+  activity,
   onBack,
   onLogRep,
   onEditRep,
   onDeleteRep,
-  onEditCategory,
-  onDeleteCategory,
+  onEditActivity,
+  onDeleteActivity,
 }: Props) {
-  const accent = category.color || colors.accent;
-  const nextRep = category.reps + 1;
+  const accent = activity.color || colors.accent;
+  const nextRep = activity.reps + 1;
   const [logging, setLogging] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingRepId, setEditingRepId] = useState<string | null>(null);
 
   const editingEntry = useMemo(
-    () => category.log.find((entry) => entry.id === editingRepId) ?? null,
-    [category.log, editingRepId],
+    () => activity.log.find((entry) => entry.id === editingRepId) ?? null,
+    [activity.log, editingRepId],
   );
 
   const editingRepNumber = useMemo(() => {
     if (editingRepId == null) return 0;
-    const index = category.log.findIndex((entry) => entry.id === editingRepId);
+    const index = activity.log.findIndex((entry) => entry.id === editingRepId);
     if (index < 0) return 0;
-    return Math.max(category.reps - index, 1);
-  }, [category.log, category.reps, editingRepId]);
+    return Math.max(activity.reps - index, 1);
+  }, [activity.log, activity.reps, editingRepId]);
 
-  const confirmDeleteCategory = () => {
+  const confirmDeleteActivity = () => {
     Alert.alert(
       'Delete activity',
-      `Delete “${category.name}” and all of its reps? This can’t be undone.`,
+      `Delete “${activity.name}” and all of its reps? This can’t be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: onDeleteCategory,
+          onPress: onDeleteActivity,
         },
       ],
     );
@@ -70,7 +70,7 @@ export function ActivityDetailScreen({
 
   return (
     <View style={styles.screen}>
-      <DetailHeader title={category.name} onBack={onBack} onClose={onBack} />
+      <DetailHeader title={activity.name} onBack={onBack} onClose={onBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -78,13 +78,13 @@ export function ActivityDetailScreen({
         showsVerticalScrollIndicator={false}
       >
         <ProgressOverview
-          reps={category.reps}
-          goal={category.goal}
+          reps={activity.reps}
+          goal={activity.goal}
           color={accent}
         />
         <RepLogSection
-          reps={category.reps}
-          log={category.log}
+          reps={activity.reps}
+          log={activity.log}
           accentColor={accent}
           onEditRep={(repId) => setEditingRepId(repId)}
           onDeleteRep={(repId) => {
@@ -107,7 +107,7 @@ export function ActivityDetailScreen({
         </Pressable>
 
         <Pressable
-          onPress={confirmDeleteCategory}
+          onPress={confirmDeleteActivity}
           style={({ pressed }) => [styles.deleteActivity, pressed && styles.pressed]}
         >
           <Text style={styles.deleteActivityLabel}>Delete activity</Text>
@@ -122,9 +122,9 @@ export function ActivityDetailScreen({
 
       <LogRepModal
         visible={logging}
-        activityName={category.name}
+        activityName={activity.name}
         nextRepNumber={nextRep}
-        goal={category.goal}
+        goal={activity.goal}
         accentColor={accent}
         onClose={() => setLogging(false)}
         onSubmit={(payload) => {
@@ -135,10 +135,10 @@ export function ActivityDetailScreen({
 
       <EditActivityModal
         visible={editing}
-        category={category}
+        activity={activity}
         accentColor={accent}
         onClose={() => setEditing(false)}
-        onSave={onEditCategory}
+        onSave={onEditActivity}
       />
 
       <EditRepModal

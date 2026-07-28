@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { colors } from '../../theme/colors';
 import type { Rep } from '../../types';
+import { formatRepWhen } from '../../utils/formatRepWhen';
 
 type Props = {
   visible: boolean;
@@ -22,6 +23,65 @@ type Props = {
   onSave: (note: string) => void;
 };
 
+function EditRepForm({
+  repNumber,
+  entry,
+  accentColor,
+  onClose,
+  onSave,
+}: {
+  repNumber: number;
+  entry: Rep;
+  accentColor: string;
+  onClose: () => void;
+  onSave: (note: string) => void;
+}) {
+  const [note, setNote] = useState(entry.note);
+
+  return (
+    <>
+      <View style={styles.handle} />
+      <Text style={styles.title}>Edit Rep {repNumber}</Text>
+      <Text style={styles.when}>{formatRepWhen(entry.loggedAt)}</Text>
+
+      {entry.imageUrl ? (
+        <Image source={{ uri: entry.imageUrl }} style={styles.image} />
+      ) : null}
+
+      <Text style={styles.label}>Note</Text>
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder="What did you do?"
+        placeholderTextColor={colors.muted}
+        multiline
+        autoFocus
+        style={styles.input}
+        textAlignVertical="top"
+      />
+
+      <View style={styles.actions}>
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.secondaryLabel}>Cancel</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onSave(note.trim())}
+          style={({ pressed }) => [
+            styles.primaryBtn,
+            { backgroundColor: accentColor },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.primaryLabel}>Save</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+}
+
 export function EditRepModal({
   visible,
   repNumber,
@@ -30,16 +90,6 @@ export function EditRepModal({
   onClose,
   onSave,
 }: Props) {
-  const [note, setNote] = useState(entry?.note ?? '');
-
-  useEffect(() => {
-    if (visible && entry) {
-      setNote(entry.note);
-    }
-  }, [visible, entry]);
-
-  if (!entry) return null;
-
   return (
     <Modal
       visible={visible}
@@ -53,46 +103,16 @@ export function EditRepModal({
       >
         <Pressable style={styles.dismissArea} onPress={onClose} />
         <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Edit Rep {repNumber}</Text>
-          <Text style={styles.when}>
-            {entry.date} · {entry.time}
-          </Text>
-
-          {entry.imageUrl ? (
-            <Image source={{ uri: entry.imageUrl }} style={styles.image} />
+          {visible && entry ? (
+            <EditRepForm
+              key={entry.id}
+              repNumber={repNumber}
+              entry={entry}
+              accentColor={accentColor}
+              onClose={onClose}
+              onSave={onSave}
+            />
           ) : null}
-
-          <Text style={styles.label}>Note</Text>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder="What did you do?"
-            placeholderTextColor={colors.muted}
-            multiline
-            autoFocus
-            style={styles.input}
-            textAlignVertical="top"
-          />
-
-          <View style={styles.actions}>
-            <Pressable
-              onPress={onClose}
-              style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.secondaryLabel}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onSave(note.trim())}
-              style={({ pressed }) => [
-                styles.primaryBtn,
-                { backgroundColor: accentColor },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.primaryLabel}>Save</Text>
-            </Pressable>
-          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

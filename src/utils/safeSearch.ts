@@ -27,10 +27,10 @@ type SafeSearchAnnotation = {
 };
 
 type AnnotateResponse = {
-  responses?: Array<{
+  responses?: {
     safeSearchAnnotation?: SafeSearchAnnotation;
     error?: { message?: string };
-  }>;
+  }[];
 };
 
 const LIKELIHOOD_RANK: Record<Likelihood, number> = {

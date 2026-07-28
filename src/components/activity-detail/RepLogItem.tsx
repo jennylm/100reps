@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import type { Rep } from '../../types';
+import { formatRepWhen } from '../../utils/formatRepWhen';
 
 type Props = {
   repNumber: number;
@@ -24,7 +25,7 @@ export function RepLogItem({
           <Text style={styles.badgeText}>REP {repNumber}</Text>
         </View>
         <Text style={styles.when}>
-          {entry.date} · {entry.time}
+          {formatRepWhen(entry.loggedAt)}
         </Text>
         <View style={styles.actions}>
           <Pressable

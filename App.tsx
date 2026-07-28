@@ -31,38 +31,38 @@ import { AuthScreen } from './src/screens/auth/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { colors } from './src/theme/colors';
-import type { AddActivityDraft, Category, Screen } from './src/types';
-import { buildCreateActivityInput } from './src/utils/createCategoryFromDraft';
+import type { Activity, AddActivityDraft, Screen } from './src/types';
+import { buildCreateActivityInput } from './src/utils/createActivityFromDraft';
 import type { LogRepPayload } from './src/components/activity-detail/LogRepModal';
 import type { EditActivityPayload } from './src/components/activity-detail/EditActivityModal';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 type ShellProps = {
-  cats: Category[];
-  loadingCats: boolean;
+  activities: Activity[];
+  loadingActivities: boolean;
   onCreated: (draft: AddActivityDraft) => void | Promise<void>;
-  onLogRep: (categoryId: string, payload: LogRepPayload) => void | Promise<void>;
-  onEditRep: (categoryId: string, repId: string, note: string) => void | Promise<void>;
-  onDeleteRep: (categoryId: string, repId: string) => void | Promise<void>;
-  onEditCategory: (categoryId: string, payload: EditActivityPayload) => void | Promise<void>;
-  onDeleteCategory: (categoryId: string) => void | Promise<void>;
+  onLogRep: (activityId: string, payload: LogRepPayload) => void | Promise<void>;
+  onEditRep: (activityId: string, repId: string, note: string) => void | Promise<void>;
+  onDeleteRep: (activityId: string, repId: string) => void | Promise<void>;
+  onEditActivity: (activityId: string, payload: EditActivityPayload) => void | Promise<void>;
+  onDeleteActivity: (activityId: string) => void | Promise<void>;
 };
 
 function AppShell({
-  cats,
-  loadingCats,
+  activities,
+  loadingActivities,
   onCreated,
   onLogRep,
   onEditRep,
   onDeleteRep,
-  onEditCategory,
-  onDeleteCategory,
+  onEditActivity,
+  onDeleteActivity,
 }: ShellProps) {
   const [screen, setScreen] = useState<Screen>('home');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const selected = cats.find((cat) => cat.id === selectedId) ?? null;
+  const selected = activities.find((item) => item.id === selectedId) ?? null;
   const hideNav = screen === 'add';
 
   const goHome = () => {
@@ -74,15 +74,15 @@ function AppShell({
     <>
       <StatusBar style="dark" />
       <View style={styles.shell}>
-        {loadingCats ? (
+        {loadingActivities ? (
           <View style={styles.loading}>
             <ActivityIndicator color={colors.brand.teal} />
           </View>
         ) : null}
 
-        {!loadingCats && screen === 'home' ? (
+        {!loadingActivities && screen === 'home' ? (
           <HomeScreen
-            cats={cats}
+            activities={activities}
             onSelect={(id) => {
               setSelectedId(id);
               setScreen('detail');
@@ -91,29 +91,29 @@ function AppShell({
           />
         ) : null}
 
-        {!loadingCats && screen === 'detail' && selected ? (
+        {!loadingActivities && screen === 'detail' && selected ? (
           <ActivityDetailScreen
-            category={selected}
+            activity={selected}
             onBack={goHome}
             onLogRep={(payload) => onLogRep(selected.id, payload)}
             onEditRep={(repId, note) => onEditRep(selected.id, repId, note)}
             onDeleteRep={(repId) => onDeleteRep(selected.id, repId)}
-            onEditCategory={(payload) => onEditCategory(selected.id, payload)}
-            onDeleteCategory={() => {
-              void onDeleteCategory(selected.id);
+            onEditActivity={(payload) => onEditActivity(selected.id, payload)}
+            onDeleteActivity={() => {
+              void onDeleteActivity(selected.id);
               goHome();
             }}
           />
         ) : null}
 
-        {!loadingCats && screen === 'community' ? (
+        {!loadingActivities && screen === 'community' ? (
           <View style={styles.placeholder}>
             <Text style={styles.placeholderTitle}>Community</Text>
             <Text style={styles.placeholderBody}>Coming next from the Figma prototype.</Text>
           </View>
         ) : null}
 
-        {!loadingCats && screen === 'add' ? (
+        {!loadingActivities && screen === 'add' ? (
           <AddActivityScreen
             onCancel={() => setScreen('home')}
             onComplete={async (draft) => {
@@ -123,7 +123,9 @@ function AppShell({
           />
         ) : null}
       </View>
-      {!hideNav && !loadingCats ? <BottomNav screen={screen} setScreen={setScreen} /> : null}
+      {!hideNav && !loadingActivities ? (
+        <BottomNav screen={screen} setScreen={setScreen} />
+      ) : null}
     </>
   );
 }
@@ -157,28 +159,28 @@ function FontGate({ children }: { children: ReactNode }) {
 
 function AuthenticatedApp() {
   const { user } = useAuth();
-  const [cats, setCats] = useState<Category[]>([]);
-  const [loadingCats, setLoadingCats] = useState(true);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     if (!user) {
-      setCats([]);
-      setLoadingCats(false);
+      setActivities([]);
+      setLoadingActivities(false);
       return;
     }
 
-    setLoadingCats(true);
+    setLoadingActivities(true);
     listActivities()
       .then((rows) => {
-        if (!cancelled) setCats(rows);
+        if (!cancelled) setActivities(rows);
       })
       .catch((err) => {
         console.warn('Failed to load activities', err);
-        if (!cancelled) setCats([]);
+        if (!cancelled) setActivities([]);
       })
       .finally(() => {
-        if (!cancelled) setLoadingCats(false);
+        if (!cancelled) setLoadingActivities(false);
       });
 
     return () => {
@@ -191,31 +193,31 @@ function AuthenticatedApp() {
       if (!user) return;
       const input = await buildCreateActivityInput(draft);
       const created = await createActivity(user.id, input);
-      setCats((prev) => [created, ...prev]);
+      setActivities((prev) => [created, ...prev]);
     },
     [user],
   );
 
   const handleLogRep = useCallback(
-    async (categoryId: string, payload: LogRepPayload) => {
+    async (activityId: string, payload: LogRepPayload) => {
       if (!user) return;
       let imagePath: string | null = null;
       if (payload.imageUrl) {
-        imagePath = await uploadRepEvidence(user.id, categoryId, payload.imageUrl);
+        imagePath = await uploadRepEvidence(user.id, activityId, payload.imageUrl);
       }
       const entry = await insertRep({
         userId: user.id,
-        activityId: categoryId,
+        activityId,
         note: payload.note,
         imagePath,
       });
-      setCats((prev) =>
-        prev.map((cat) => {
-          if (cat.id !== categoryId) return cat;
+      setActivities((prev) =>
+        prev.map((item) => {
+          if (item.id !== activityId) return item;
           return {
-            ...cat,
-            reps: cat.reps + 1,
-            log: [entry, ...cat.log],
+            ...item,
+            reps: item.reps + 1,
+            log: [entry, ...item.log],
           };
         }),
       );
@@ -223,30 +225,30 @@ function AuthenticatedApp() {
     [user],
   );
 
-  const handleDeleteRep = useCallback(async (categoryId: string, repId: string) => {
+  const handleDeleteRep = useCallback(async (activityId: string, repId: string) => {
     await deleteRep(repId);
-    setCats((prev) =>
-      prev.map((cat) => {
-        if (cat.id !== categoryId) return cat;
-        const nextLog = cat.log.filter((entry) => entry.id !== repId);
-        if (nextLog.length === cat.log.length) return cat;
+    setActivities((prev) =>
+      prev.map((item) => {
+        if (item.id !== activityId) return item;
+        const nextLog = item.log.filter((entry) => entry.id !== repId);
+        if (nextLog.length === item.log.length) return item;
         return {
-          ...cat,
-          reps: Math.max(0, cat.reps - 1),
+          ...item,
+          reps: Math.max(0, item.reps - 1),
           log: nextLog,
         };
       }),
     );
   }, []);
 
-  const handleEditRep = useCallback(async (categoryId: string, repId: string, note: string) => {
+  const handleEditRep = useCallback(async (activityId: string, repId: string, note: string) => {
     await updateRepNote(repId, note);
-    setCats((prev) =>
-      prev.map((cat) => {
-        if (cat.id !== categoryId) return cat;
+    setActivities((prev) =>
+      prev.map((item) => {
+        if (item.id !== activityId) return item;
         return {
-          ...cat,
-          log: cat.log.map((entry) =>
+          ...item,
+          log: item.log.map((entry) =>
             entry.id === repId ? { ...entry, note } : entry,
           ),
         };
@@ -254,14 +256,14 @@ function AuthenticatedApp() {
     );
   }, []);
 
-  const handleEditCategory = useCallback(
-    async (categoryId: string, payload: EditActivityPayload) => {
-      await updateActivity(categoryId, payload);
-      setCats((prev) =>
-        prev.map((cat) => {
-          if (cat.id !== categoryId) return cat;
+  const handleEditActivity = useCallback(
+    async (activityId: string, payload: EditActivityPayload) => {
+      await updateActivity(activityId, payload);
+      setActivities((prev) =>
+        prev.map((item) => {
+          if (item.id !== activityId) return item;
           return {
-            ...cat,
+            ...item,
             name: payload.name,
             repType: payload.repType,
             sessionLengthId: payload.sessionLengthId ?? undefined,
@@ -273,21 +275,21 @@ function AuthenticatedApp() {
     [],
   );
 
-  const handleDeleteCategory = useCallback(async (categoryId: string) => {
-    await deleteActivity(categoryId);
-    setCats((prev) => prev.filter((cat) => cat.id !== categoryId));
+  const handleDeleteActivity = useCallback(async (activityId: string) => {
+    await deleteActivity(activityId);
+    setActivities((prev) => prev.filter((item) => item.id !== activityId));
   }, []);
 
   return (
     <AppShell
-      cats={cats}
-      loadingCats={loadingCats}
+      activities={activities}
+      loadingActivities={loadingActivities}
       onCreated={handleCreated}
       onLogRep={handleLogRep}
       onEditRep={handleEditRep}
       onDeleteRep={handleDeleteRep}
-      onEditCategory={handleEditCategory}
-      onDeleteCategory={handleDeleteCategory}
+      onEditActivity={handleEditActivity}
+      onDeleteActivity={handleDeleteActivity}
     />
   );
 }

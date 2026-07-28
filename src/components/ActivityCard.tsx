@@ -1,26 +1,26 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { Category } from '../types';
+import type { Activity } from '../types';
 
 type Props = {
-  cat: Category;
+  activity: Activity;
   onSelect: () => void;
 };
 
-export function CategoryCard({ cat, onSelect }: Props) {
+export function ActivityCard({ activity, onSelect }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
-  const pct = cat.goal > 0 ? cat.reps / cat.goal : 0;
+  const pct = activity.goal > 0 ? activity.reps / activity.goal : 0;
 
   return (
     <Pressable
       onPress={onSelect}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <View style={[styles.fallback, { backgroundColor: cat.color }]} />
+      <View style={[styles.fallback, { backgroundColor: activity.color }]} />
       {!imageFailed ? (
         <Image
-          source={{ uri: cat.photo }}
+          source={{ uri: activity.photo }}
           style={styles.photo}
           onError={() => setImageFailed(true)}
         />
@@ -32,12 +32,15 @@ export function CategoryCard({ cat, onSelect }: Props) {
       />
       <View style={styles.track}>
         <View
-          style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: cat.color }]}
+          style={[
+            styles.fill,
+            { width: `${pct * 100}%`, backgroundColor: activity.color },
+          ]}
         />
       </View>
       <View style={styles.overlay}>
-        <Text style={styles.name}>{cat.name}</Text>
-        <Text style={styles.reps}>{cat.reps}</Text>
+        <Text style={styles.name}>{activity.name}</Text>
+        <Text style={styles.reps}>{activity.reps}</Text>
       </View>
     </Pressable>
   );
