@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "100 Reps",
+    "slug": "100reps",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF6F4"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hundredreps.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF6F4",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.hundredreps.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow 100 Reps to attach photo evidence to your reps.",
+          "cameraPermission": "Allow 100 Reps to take photo evidence for your reps."
+        }
+      ]
+    ]
+  }
+}
