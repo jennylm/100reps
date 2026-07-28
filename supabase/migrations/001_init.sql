@@ -87,13 +87,29 @@ create policy "reps_select_own"
 drop policy if exists "reps_insert_own" on public.reps;
 create policy "reps_insert_own"
   on public.reps for insert
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1
+      from public.activities
+      where activities.id = reps.activity_id
+        and activities.user_id = auth.uid()
+    )
+  );
 
 drop policy if exists "reps_update_own" on public.reps;
 create policy "reps_update_own"
   on public.reps for update
   using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1
+      from public.activities
+      where activities.id = reps.activity_id
+        and activities.user_id = auth.uid()
+    )
+  );
 
 drop policy if exists "reps_delete_own" on public.reps;
 create policy "reps_delete_own"
