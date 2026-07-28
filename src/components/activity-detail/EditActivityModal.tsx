@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -13,7 +13,7 @@ import {
 import { SESSION_LENGTHS, sessionLengthChipSelection } from '../../data/areas';
 import { DurationChip } from '../add-activity/MetaChip';
 import { colors } from '../../theme/colors';
-import type { Category, RepDefinitionType } from '../../types';
+import type { Activity, RepDefinitionType } from '../../types';
 
 export type EditActivityPayload = {
   name: string;
@@ -24,38 +24,31 @@ export type EditActivityPayload = {
 
 type Props = {
   visible: boolean;
-  category: Category;
+  activity: Activity;
   accentColor: string;
   onClose: () => void;
   onSave: (payload: EditActivityPayload) => void | Promise<void>;
 };
 
-export function EditActivityModal({
-  visible,
-  category,
+function EditActivityForm({
+  activity,
   accentColor,
   onClose,
   onSave,
-}: Props) {
-  const [name, setName] = useState(category.name);
-  const [repType, setRepType] = useState<RepDefinitionType>(category.repType ?? 'time');
-  const [selectedLengthId, setSelectedLengthId] = useState('45');
-  const [customLength, setCustomLength] = useState('');
-  const [goalDefinition, setGoalDefinition] = useState(category.goalDefinition ?? '');
+}: {
+  activity: Activity;
+  accentColor: string;
+  onClose: () => void;
+  onSave: (payload: EditActivityPayload) => void | Promise<void>;
+}) {
+  const initial = sessionLengthChipSelection(activity.sessionLengthId);
+  const [name, setName] = useState(activity.name);
+  const [repType, setRepType] = useState<RepDefinitionType>(activity.repType ?? 'time');
+  const [selectedLengthId, setSelectedLengthId] = useState(initial.selectedId);
+  const [customLength, setCustomLength] = useState(initial.customValue);
+  const [goalDefinition, setGoalDefinition] = useState(activity.goalDefinition ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!visible) return;
-    const length = sessionLengthChipSelection(category.sessionLengthId);
-    setName(category.name);
-    setRepType(category.repType ?? 'time');
-    setSelectedLengthId(length.selectedId);
-    setCustomLength(length.customValue);
-    setGoalDefinition(category.goalDefinition ?? '');
-    setBusy(false);
-    setError(null);
-  }, [visible, category]);
 
   const resolvedSessionLength =
     selectedLengthId === 'other' ? customLength.trim() : selectedLengthId;
@@ -87,13 +80,7 @@ export function EditActivityModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable style={styles.dismissArea} onPress={onClose} />
-        <View style={styles.sheet}>
+    <>
           <View style={styles.handle} />
           <Text style={styles.title}>Edit activity</Text>
 
@@ -222,6 +209,34 @@ export function EditActivityModal({
               <Text style={styles.primaryLabel}>{busy ? 'Saving…' : 'Save'}</Text>
             </Pressable>
           </View>
+    </>
+  );
+}
+
+export function EditActivityModal({
+  visible,
+  activity,
+  accentColor,
+  onClose,
+  onSave,
+}: Props) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Pressable style={styles.dismissArea} onPress={onClose} />
+        <View style={styles.sheet}>
+          {visible ? (
+            <EditActivityForm
+              key={activity.id}
+              activity={activity}
+              accentColor={accentColor}
+              onClose={onClose}
+              onSave={onSave}
+            />
+          ) : null}
         </View>
       </KeyboardAvoidingView>
     </Modal>

@@ -2,8 +2,8 @@ export type Screen = 'home' | 'detail' | 'community' | 'add';
 
 export interface Rep {
   id: string;
-  date: string;
-  time: string;
+  /** ISO timestamptz from the database (canonical). Format in the UI. */
+  loggedAt: string;
   note: string;
   /** Signed or local URL for display */
   imageUrl?: string;
@@ -11,7 +11,7 @@ export interface Rep {
   imagePath?: string;
 }
 
-export interface Category {
+export interface Activity {
   id: string;
   name: string;
   icon: string;

@@ -1,6 +1,6 @@
 import type {
+  Activity,
   ActivityVisibility,
-  Category,
   Rep,
   RepDefinitionType,
 } from '../types';
@@ -52,14 +52,6 @@ export type CreateActivityInput = {
   goal?: number;
 };
 
-function formatLoggedAt(iso: string): Pick<Rep, 'date' | 'time'> {
-  const d = new Date(iso);
-  return {
-    date: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-  };
-}
-
 async function signedUrlForPath(path: string | null | undefined): Promise<string | undefined> {
   if (!path) return undefined;
   const { data, error } = await supabase.storage
@@ -70,19 +62,17 @@ async function signedUrlForPath(path: string | null | undefined): Promise<string
 }
 
 async function mapRep(row: RepRow): Promise<Rep> {
-  const stamp = formatLoggedAt(row.logged_at);
   const imageUrl = await signedUrlForPath(row.image_path);
   return {
     id: row.id,
-    date: stamp.date,
-    time: stamp.time,
+    loggedAt: row.logged_at,
     note: row.note ?? '',
     imageUrl,
     imagePath: row.image_path ?? undefined,
   };
 }
 
-async function mapActivity(row: ActivityRow): Promise<Category> {
+async function mapActivity(row: ActivityRow): Promise<Activity> {
   const repRows = [...(row.reps ?? [])].sort(
     (a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime(),
   );
@@ -105,7 +95,7 @@ async function mapActivity(row: ActivityRow): Promise<Category> {
   };
 }
 
-export async function listActivities(): Promise<Category[]> {
+export async function listActivities(): Promise<Activity[]> {
   const { data, error } = await supabase
     .from('activities')
     .select('*, reps(*)')
@@ -119,7 +109,7 @@ export async function listActivities(): Promise<Category[]> {
 export async function createActivity(
   userId: string,
   input: CreateActivityInput,
-): Promise<Category> {
+): Promise<Activity> {
   const { data, error } = await supabase
     .from('activities')
     .insert({

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { ACTIVITY_AREAS } from '../../data/areas';
 import { colors } from '../../theme/colors';
@@ -27,8 +27,6 @@ export function AddActivityScreen({ onCancel, onComplete }: Props) {
   const [draft, setDraft] = useState<AddActivityDraft>(() => ({
     ...INITIAL_ADD_ACTIVITY_DRAFT,
   }));
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
 
   const selectedArea = useMemo(
     () => ACTIVITY_AREAS.find((area) => area.id === draft.areaId) ?? null,
@@ -36,9 +34,7 @@ export function AddActivityScreen({ onCancel, onComplete }: Props) {
   );
 
   const patchDraft = (patch: Partial<AddActivityDraft>) => {
-    const next = { ...draftRef.current, ...patch };
-    draftRef.current = next;
-    setDraft(next);
+    setDraft((prev) => ({ ...prev, ...patch }));
   };
 
   const goBack = () => {
@@ -50,11 +46,16 @@ export function AddActivityScreen({ onCancel, onComplete }: Props) {
     setStep((prev) => (prev - 1) as Step);
   };
 
-  const finish = async () => {
+  const finish = async (visibilityOverride?: ActivityVisibility) => {
     if (creating) return;
+    // Guard: Pressable may pass a synthetic event if finish is used as onPress.
+    const visibility =
+      visibilityOverride === 'public' || visibilityOverride === 'private'
+        ? visibilityOverride
+        : undefined;
     setCreating(true);
     try {
-      await onComplete(draftRef.current);
+      await onComplete(visibility ? { ...draft, visibility } : draft);
     } finally {
       setCreating(false);
     }
@@ -116,7 +117,9 @@ export function AddActivityScreen({ onCancel, onComplete }: Props) {
             patchDraft({ visibility });
           }}
           onBack={goBack}
-          onContinue={finish}
+          onContinue={(visibility) => {
+            void finish(visibility);
+          }}
         />
       ) : null}
 

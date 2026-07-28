@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
-import type { Category } from '../types';
-import { CategoryCard } from '../components/CategoryCard';
+import { ActivityCard } from '../components/ActivityCard';
 import { useAuth } from '../state/AuthContext';
+import { colors } from '../theme/colors';
+import type { Activity } from '../types';
 
 type Props = {
-  cats: Category[];
+  activities: Activity[];
   onSelect: (id: string) => void;
   onAdd: () => void;
 };
@@ -20,30 +20,26 @@ function formatHeaderDate(date: Date): string {
   });
 }
 
-export function HomeScreen({ cats, onSelect, onAdd }: Props) {
+export function HomeScreen({ activities, onSelect, onAdd }: Props) {
   const scrollRef = useRef<ScrollView>(null);
   const { user, signOut } = useAuth();
-  const total = cats.reduce((sum, cat) => sum + cat.reps, 0);
+  const total = activities.reduce((sum, item) => sum + item.reps, 0);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, [cats.length]);
+  }, [activities.length]);
 
   const onAccountPress = () => {
-    Alert.alert(
-      'Account',
-      user?.email ?? 'Signed in',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign out',
-          style: 'destructive',
-          onPress: () => {
-            void signOut();
-          },
+    Alert.alert('Account', user?.email ?? 'Signed in', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: () => {
+          void signOut();
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -77,16 +73,16 @@ export function HomeScreen({ cats, onSelect, onAdd }: Props) {
         </View>
         <View style={styles.summaryCell}>
           <Text style={styles.summaryLabel}>Activities</Text>
-          <Text style={styles.summaryValue}>{cats.length}</Text>
+          <Text style={styles.summaryValue}>{activities.length}</Text>
         </View>
       </View>
 
       <Text style={styles.sectionLabel}>Activities</Text>
 
       <View style={styles.grid}>
-        {cats.map((cat) => (
-          <View key={cat.id} style={styles.gridItem}>
-            <CategoryCard cat={cat} onSelect={() => onSelect(cat.id)} />
+        {activities.map((item) => (
+          <View key={item.id} style={styles.gridItem}>
+            <ActivityCard activity={item} onSelect={() => onSelect(item.id)} />
           </View>
         ))}
       </View>

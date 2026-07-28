@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   SESSION_LENGTHS,
@@ -34,36 +33,22 @@ export function DefineRepStep({
   onBack,
   onContinue,
 }: Props) {
-  const initial = sessionLengthChipSelection(sessionLengthId);
-  const [selectedLengthId, setSelectedLengthId] = useState(initial.selectedId);
-  const [customLength, setCustomLength] = useState(initial.customValue);
-
-  useEffect(() => {
-    const next = sessionLengthChipSelection(sessionLengthId);
-    setSelectedLengthId(next.selectedId);
-    setCustomLength(next.customValue);
-  }, [sessionLengthId]);
+  const { selectedId, customValue } = sessionLengthChipSelection(sessionLengthId);
 
   const selectLength = (id: string) => {
-    setSelectedLengthId(id);
     if (id === 'other') {
-      onChangeSessionLength(customLength.trim() || 'other');
+      onChangeSessionLength(customValue.trim() || 'other');
       return;
     }
-    setCustomLength('');
     onChangeSessionLength(id);
   };
 
   const onCustomChange = (value: string) => {
-    setCustomLength(value);
-    setSelectedLengthId('other');
     onChangeSessionLength(value.trim() || 'other');
   };
 
   const timeReady =
-    selectedLengthId === 'other'
-      ? customLength.trim().length > 0
-      : Boolean(selectedLengthId);
+    selectedId === 'other' ? customValue.trim().length > 0 : Boolean(selectedId);
 
   const canContinue =
     repType === 'time' ? timeReady : goalDefinition.trim().length > 0;
@@ -107,16 +92,16 @@ export function DefineRepStep({
                 <DurationChip
                   key={item.id}
                   label={item.label}
-                  selected={selectedLengthId === item.id}
+                  selected={selectedId === item.id}
                   onPress={() => selectLength(item.id)}
                 />
               ))}
             </View>
-            {selectedLengthId === 'other' ? (
+            {selectedId === 'other' ? (
               <View style={styles.otherField}>
                 <FormTextField
                   label="Custom length"
-                  value={customLength}
+                  value={customValue}
                   onChangeText={onCustomChange}
                   placeholder="e.g. 25 minutes"
                   autoFocus
