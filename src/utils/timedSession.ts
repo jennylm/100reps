@@ -32,6 +32,22 @@ export type TimedSessionSnapshot = {
   isComplete: boolean;
 };
 
+export type TimerStartBlockReason =
+  | 'no_user'
+  | 'not_hydrated'
+  | 'already_active';
+
+export function timerStartBlockReason(input: {
+  userId: string | null;
+  hydrated: boolean;
+  session: TimedSession | null;
+}): TimerStartBlockReason | null {
+  if (!input.userId) return 'no_user';
+  if (!input.hydrated) return 'not_hydrated';
+  if (input.session) return 'already_active';
+  return null;
+}
+
 function clampNonNegative(value: number): number {
   return Math.max(0, value);
 }

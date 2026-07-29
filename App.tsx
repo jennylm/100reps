@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -19,6 +26,7 @@ import { ActiveTimerBanner } from './src/components/timer/ActiveTimerBanner';
 import {
   createActivity,
   deleteActivity,
+  deleteUploadedEvidence,
   deleteRep,
   insertRep,
   listActivities,
@@ -48,6 +56,8 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 type ShellProps = {
   activities: Activity[];
   loadingActivities: boolean;
+  activitiesLoadFailed: boolean;
+  onRetryActivities: () => void;
   onCreated: (draft: AddActivityDraft) => void | Promise<void>;
   onLogRep: (activityId: string, payload: LogRepPayload) => void | Promise<void>;
   onEditRep: (activityId: string, repId: string, note: string) => void | Promise<void>;
@@ -59,6 +69,8 @@ type ShellProps = {
 function AppShell({
   activities,
   loadingActivities,
+  activitiesLoadFailed,
+  onRetryActivities,
   onCreated,
   onLogRep,
   onEditRep,
@@ -68,7 +80,13 @@ function AppShell({
 }: ShellProps) {
   const [screen, setScreen] = useState<Screen>('home');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { session, snapshot, startTimer, clearAfterConfirm } = useActiveTimer();
+  const {
+    session,
+    snapshot,
+    hydrated: timerHydrated,
+    startTimer,
+    clearAfterConfirm,
+  } = useActiveTimer();
 
   const selected = activities.find((item) => item.id === selectedId) ?? null;
   const timerActivity =
@@ -89,6 +107,13 @@ function AppShell({
     if (result.ok) {
       setSelectedId(activity.id);
       setScreen('timer');
+      return;
+    }
+    if (result.reason === 'not_hydrated') {
+      Alert.alert(
+        'Restoring your timer',
+        'Please wait a moment while your saved timed session is restored.',
+      );
       return;
     }
     if (result.reason === 'already_active') {
@@ -127,6 +152,42 @@ function AppShell({
     }
   };
 
+  if (loadingActivities) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.brand.teal} />
+        </View>
+      </>
+    );
+  }
+
+  if (activitiesLoadFailed) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <View style={styles.loadError}>
+          <Text style={styles.loadErrorTitle}>
+            We couldn’t load your activities.
+          </Text>
+          <Text style={styles.loadErrorBody}>
+            Your data is still stored online.
+          </Text>
+          <Pressable
+            onPress={onRetryActivities}
+            style={({ pressed }) => [
+              styles.retryButton,
+              pressed && styles.retryButtonPressed,
+            ]}
+          >
+            <Text style={styles.retryButtonLabel}>Try again</Text>
+          </Pressable>
+        </View>
+      </>
+    );
+  }
+
   return (
     <>
       <StatusBar style="dark" />
@@ -152,6 +213,7 @@ function AppShell({
           <ActivityDetailScreen
             activity={selected}
             hasActiveTimer={Boolean(session)}
+            timerHydrated={timerHydrated}
             activeTimerActivityId={session?.activity.id ?? null}
             onBack={goHome}
             onLogRep={(payload) => onLogRep(selected.id, payload)}
@@ -162,8 +224,8 @@ function AppShell({
             onEditRep={(repId, note) => onEditRep(selected.id, repId, note)}
             onDeleteRep={(repId) => onDeleteRep(selected.id, repId)}
             onEditActivity={(payload) => onEditActivity(selected.id, payload)}
-            onDeleteActivity={() => {
-              void onDeleteActivity(selected.id);
+            onDeleteActivity={async () => {
+              await onDeleteActivity(selected.id);
               goHome();
             }}
           />
@@ -253,23 +315,30 @@ function AuthenticatedApp() {
   const { user } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
+  const [activitiesLoadFailed, setActivitiesLoadFailed] = useState(false);
+  const [activitiesLoadAttempt, setActivitiesLoadAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     if (!user) {
       setActivities([]);
+      setActivitiesLoadFailed(false);
       setLoadingActivities(false);
       return;
     }
 
+    setActivitiesLoadFailed(false);
     setLoadingActivities(true);
     listActivities()
       .then((rows) => {
-        if (!cancelled) setActivities(rows);
+        if (!cancelled) {
+          setActivities(rows);
+          setActivitiesLoadFailed(false);
+        }
       })
       .catch((err) => {
         console.warn('Failed to load activities', err);
-        if (!cancelled) setActivities([]);
+        if (!cancelled) setActivitiesLoadFailed(true);
       })
       .finally(() => {
         if (!cancelled) setLoadingActivities(false);
@@ -278,7 +347,7 @@ function AuthenticatedApp() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [activitiesLoadAttempt, user?.id]);
 
   const handleCreated = useCallback(
     async (draft: AddActivityDraft) => {
@@ -294,17 +363,29 @@ function AuthenticatedApp() {
     async (activityId: string, payload: LogRepPayload) => {
       if (!user) return;
       let imagePath: string | null = null;
-      if (payload.imageUrl) {
-        imagePath = await uploadRepEvidence(user.id, activityId, payload.imageUrl);
+      let entry: Awaited<ReturnType<typeof insertRep>>;
+      try {
+        if (payload.imageUrl) {
+          imagePath = await uploadRepEvidence(user.id, activityId, payload.imageUrl);
+        }
+        entry = await insertRep({
+          userId: user.id,
+          activityId,
+          note: payload.note,
+          imagePath,
+          durationSeconds: payload.durationSeconds ?? null,
+          loggedAt: payload.loggedAt ?? null,
+        });
+      } catch (error) {
+        if (imagePath) {
+          try {
+            await deleteUploadedEvidence(imagePath);
+          } catch (cleanupError) {
+            console.warn('Failed to clean up uploaded rep evidence', cleanupError);
+          }
+        }
+        throw error;
       }
-      const entry = await insertRep({
-        userId: user.id,
-        activityId,
-        note: payload.note,
-        imagePath,
-        durationSeconds: payload.durationSeconds ?? null,
-        loggedAt: payload.loggedAt ?? null,
-      });
       setActivities((prev) =>
         prev.map((item) => {
           if (item.id !== activityId) return item;
@@ -379,6 +460,10 @@ function AuthenticatedApp() {
       <AppShell
         activities={activities}
         loadingActivities={loadingActivities}
+        activitiesLoadFailed={activitiesLoadFailed}
+        onRetryActivities={() => {
+          setActivitiesLoadAttempt((attempt) => attempt + 1);
+        }}
         onCreated={handleCreated}
         onLogRep={handleLogRep}
         onEditRep={handleEditRep}
@@ -434,6 +519,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.screenBg,
+  },
+  loadError: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: colors.screenBg,
+  },
+  loadErrorTitle: {
+    fontFamily: 'Fraunces_400Regular',
+    fontSize: 25,
+    lineHeight: 32,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  loadErrorBody: {
+    marginTop: 10,
+    fontFamily: 'Outfit_400Regular',
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.muted,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    minWidth: 132,
+    borderRadius: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: colors.brand.teal,
+  },
+  retryButtonPressed: {
+    opacity: 0.82,
+  },
+  retryButtonLabel: {
+    fontFamily: 'Outfit_600SemiBold',
+    fontSize: 15,
+    color: '#FFFFFF',
   },
   placeholder: {
     flex: 1,

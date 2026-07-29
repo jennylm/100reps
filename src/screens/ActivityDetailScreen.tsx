@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { DetailFooter } from '../components/activity-detail/DetailFooter';
 import { DetailHeader } from '../components/activity-detail/DetailHeader';
 import {
@@ -19,6 +27,7 @@ import type { Activity } from '../types';
 type Props = {
   activity: Activity;
   hasActiveTimer?: boolean;
+  timerHydrated?: boolean;
   activeTimerActivityId?: string | null;
   onBack: () => void;
   onLogRep: (payload: LogRepPayload) => void;
@@ -27,12 +36,13 @@ type Props = {
   onEditRep: (repId: string, note: string) => void;
   onDeleteRep: (repId: string) => void;
   onEditActivity: (payload: EditActivityPayload) => void | Promise<void>;
-  onDeleteActivity: () => void;
+  onDeleteActivity: () => void | Promise<void>;
 };
 
 export function ActivityDetailScreen({
   activity,
   hasActiveTimer = false,
+  timerHydrated = true,
   activeTimerActivityId = null,
   onBack,
   onLogRep,
@@ -49,6 +59,7 @@ export function ActivityDetailScreen({
   const [logging, setLogging] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingRepId, setEditingRepId] = useState<string | null>(null);
+  const [deletingActivity, setDeletingActivity] = useState(false);
 
   const editingEntry = useMemo(
     () => activity.log.find((entry) => entry.id === editingRepId) ?? null,
@@ -63,6 +74,8 @@ export function ActivityDetailScreen({
   }, [activity.log, activity.reps, editingRepId]);
 
   const confirmDeleteActivity = () => {
+    if (deletingActivity) return;
+
     if (hasActiveTimer && activeTimerActivityId === activity.id) {
       Alert.alert(
         'Timer still running',
@@ -83,7 +96,20 @@ export function ActivityDetailScreen({
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: onDeleteActivity,
+          onPress: () => {
+            setDeletingActivity(true);
+            void Promise.resolve(onDeleteActivity())
+              .catch((error) => {
+                console.warn('Failed to delete activity', error);
+                Alert.alert(
+                  'Couldn’t delete this activity',
+                  'Please check your connection and try again.',
+                );
+              })
+              .finally(() => {
+                setDeletingActivity(false);
+              });
+          },
         },
       ],
     );
@@ -146,9 +172,21 @@ export function ActivityDetailScreen({
 
         <Pressable
           onPress={confirmDeleteActivity}
-          style={({ pressed }) => [styles.deleteActivity, pressed && styles.pressed]}
+          disabled={deletingActivity}
+          style={({ pressed }) => [
+            styles.deleteActivity,
+            pressed && styles.pressed,
+            deletingActivity && styles.disabled,
+          ]}
         >
-          <Text style={styles.deleteActivityLabel}>Delete activity</Text>
+          {deletingActivity ? (
+            <View style={styles.deleteActivityProgress}>
+              <ActivityIndicator size="small" color={colors.brand.pink} />
+              <Text style={styles.deleteActivityLabel}>Deleting…</Text>
+            </View>
+          ) : (
+            <Text style={styles.deleteActivityLabel}>Delete activity</Text>
+          )}
         </Pressable>
       </ScrollView>
 
@@ -156,6 +194,7 @@ export function ActivityDetailScreen({
         nextRepNumber={nextRep}
         color={accent}
         isTimed={isTimed}
+        timedStartDisabled={isTimed && !timerHydrated}
         onLogRep={() => setLogging(true)}
         onStartTimedRep={isTimed ? handleStartTimedRep : undefined}
       />
@@ -232,6 +271,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_500Medium',
     fontSize: 15,
     color: colors.brand.pink,
+  },
+  deleteActivityProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  disabled: {
+    opacity: 0.65,
   },
   pressed: {
     opacity: 0.65,

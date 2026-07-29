@@ -5,6 +5,7 @@ type Props = {
   nextRepNumber: number;
   color: string;
   isTimed?: boolean;
+  timedStartDisabled?: boolean;
   onLogRep: () => void;
   onStartTimedRep?: () => void;
 };
@@ -13,6 +14,7 @@ export function DetailFooter({
   nextRepNumber,
   color,
   isTimed = false,
+  timedStartDisabled = false,
   onLogRep,
   onStartTimedRep,
 }: Props) {
@@ -21,13 +23,19 @@ export function DetailFooter({
       <View style={styles.wrap}>
         <Pressable
           onPress={onStartTimedRep}
+          disabled={timedStartDisabled}
           style={({ pressed }) => [
             styles.button,
             { backgroundColor: color },
             pressed && styles.pressed,
+            timedStartDisabled && styles.disabled,
           ]}
         >
-          <Text style={styles.label}>Start timed rep {nextRepNumber}</Text>
+          <Text style={styles.label}>
+            {timedStartDisabled
+              ? 'Restoring timer…'
+              : `Start timed rep ${nextRepNumber}`}
+          </Text>
         </Pressable>
         <Pressable
           onPress={onLogRep}
@@ -73,6 +81,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.88,
+  },
+  disabled: {
+    opacity: 0.55,
   },
   label: {
     fontFamily: 'Outfit_600SemiBold',

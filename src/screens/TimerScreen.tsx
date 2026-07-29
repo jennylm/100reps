@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   LogRepModal,
@@ -34,6 +34,34 @@ export function TimerScreen({
     discardTimer,
   } = useActiveTimer();
   const [confirming, setConfirming] = useState(false);
+  const [timerActionPending, setTimerActionPending] = useState(false);
+  const timerActionPendingRef = useRef(false);
+
+  const runTimerAction = async (
+    action: () => Promise<void>,
+    onSuccess?: () => void,
+  ) => {
+    if (timerActionPendingRef.current) return;
+    timerActionPendingRef.current = true;
+    setTimerActionPending(true);
+
+    try {
+      await action();
+    } catch (error) {
+      console.warn('Timer action failed', error);
+      timerActionPendingRef.current = false;
+      setTimerActionPending(false);
+      Alert.alert(
+        'Couldn’t update the timer',
+        'Please check your connection and try again.',
+      );
+      return;
+    }
+
+    timerActionPendingRef.current = false;
+    setTimerActionPending(false);
+    onSuccess?.();
+  };
 
   if (!session || !snapshot) {
     return (
@@ -66,7 +94,7 @@ export function TimerScreen({
           text: 'Discard',
           style: 'destructive',
           onPress: () => {
-            void discardTimer().then(onBack);
+            void runTimerAction(discardTimer, onBack);
           },
         },
       ],
@@ -82,7 +110,7 @@ export function TimerScreen({
         {
           text: 'Finish session',
           onPress: () => {
-            void finishTimer();
+            void runTimerAction(finishTimer);
           },
         },
       ],
@@ -95,7 +123,11 @@ export function TimerScreen({
         <Pressable onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backLabel}>Back</Text>
         </Pressable>
-        <Pressable onPress={confirmDiscard} style={styles.discardBtn}>
+        <Pressable
+          onPress={confirmDiscard}
+          disabled={timerActionPending}
+          style={[styles.discardBtn, timerActionPending && styles.disabled]}
+        >
           <Text style={styles.discardLabel}>Discard</Text>
         </Pressable>
       </View>
@@ -149,19 +181,28 @@ export function TimerScreen({
           <>
             <Pressable
               onPress={() => {
-                void (paused ? resumeTimer() : pauseTimer());
+                void runTimerAction(paused ? resumeTimer : pauseTimer);
               }}
+              disabled={timerActionPending}
               style={({ pressed }) => [
                 styles.primary,
                 { backgroundColor: accent },
                 pressed && styles.pressed,
+                timerActionPending && styles.disabled,
               ]}
             >
-              <Text style={styles.primaryLabel}>{paused ? 'Resume' : 'Pause'}</Text>
+              <Text style={styles.primaryLabel}>
+                {timerActionPending ? 'Updating…' : paused ? 'Resume' : 'Pause'}
+              </Text>
             </Pressable>
             <Pressable
               onPress={onFinishEarly}
-              style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+              disabled={timerActionPending}
+              style={({ pressed }) => [
+                styles.secondary,
+                pressed && styles.pressed,
+                timerActionPending && styles.disabled,
+              ]}
             >
               <Text style={styles.secondaryLabel}>Finish session</Text>
             </Pressable>
@@ -312,6 +353,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.88,
+  },
+  disabled: {
+    opacity: 0.55,
   },
   empty: {
     flex: 1,

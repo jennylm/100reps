@@ -26,6 +26,7 @@ import {
   reconcileTimedSession,
   resumeTimedSession,
   snapshotTimedSession,
+  timerStartBlockReason,
   withNotificationId,
   type TimedSession,
   type TimedSessionSnapshot,
@@ -34,7 +35,15 @@ import { useAuth } from './AuthContext';
 
 type StartResult =
   | { ok: true; session: TimedSession }
-  | { ok: false; reason: 'no_user' | 'invalid_duration' | 'already_active'; existing?: TimedSession };
+  | {
+      ok: false;
+      reason:
+        | 'no_user'
+        | 'not_hydrated'
+        | 'invalid_duration'
+        | 'already_active';
+      existing?: TimedSession;
+    };
 
 type ActiveTimerContextValue = {
   session: TimedSession | null;
@@ -161,8 +170,19 @@ function ActiveTimerProviderInner({
 
   const startTimer = useCallback(
     async (activity: Activity): Promise<StartResult> => {
+      const blockedReason = timerStartBlockReason({
+        userId,
+        hydrated,
+        session,
+      });
+      if (blockedReason) {
+        return {
+          ok: false,
+          reason: blockedReason,
+          existing: blockedReason === 'already_active' ? session ?? undefined : undefined,
+        };
+      }
       if (!userId) return { ok: false, reason: 'no_user' };
-      if (session) return { ok: false, reason: 'already_active', existing: session };
 
       const targetSeconds = parseSessionSeconds(activity.sessionLengthId);
       if (targetSeconds <= 0) return { ok: false, reason: 'invalid_duration' };
@@ -188,7 +208,7 @@ function ActiveTimerProviderInner({
       setTickNow(new Date());
       return { ok: true, session: withNotification };
     },
-    [applySession, session, userId],
+    [applySession, hydrated, session, userId],
   );
 
   const pauseTimer = useCallback(async () => {

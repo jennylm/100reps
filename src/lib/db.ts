@@ -187,6 +187,11 @@ export async function uploadRepEvidence(
   return path;
 }
 
+export async function deleteUploadedEvidence(path: string): Promise<void> {
+  const { error } = await supabase.storage.from(EVIDENCE_BUCKET).remove([path]);
+  if (error) throw error;
+}
+
 export async function insertRep(input: {
   userId: string;
   activityId: string;
@@ -235,6 +240,6 @@ export async function deleteRep(repId: string): Promise<void> {
 
   const path = (row as { image_path?: string | null } | null)?.image_path;
   if (path) {
-    await supabase.storage.from(EVIDENCE_BUCKET).remove([path]);
+    await deleteUploadedEvidence(path);
   }
 }

@@ -8,6 +8,7 @@ import {
   remainingSeconds,
   resumeTimedSession,
   snapshotTimedSession,
+  timerStartBlockReason,
   withNotificationId,
 } from './timedSession';
 
@@ -145,5 +146,33 @@ describe('timedSession', () => {
     expect(snap.remainingSeconds).toBe(60);
     expect(snap.elapsedActiveSeconds).toBe(30);
     expect(snap.isComplete).toBe(false);
+  });
+
+  it('blocks a new timer until persisted state has hydrated', () => {
+    expect(
+      timerStartBlockReason({
+        userId: 'user-1',
+        hydrated: false,
+        session: null,
+      }),
+    ).toBe('not_hydrated');
+  });
+
+  it('allows starting only after hydration confirms there is no active timer', () => {
+    expect(
+      timerStartBlockReason({
+        userId: 'user-1',
+        hydrated: true,
+        session: null,
+      }),
+    ).toBeNull();
+
+    expect(
+      timerStartBlockReason({
+        userId: 'user-1',
+        hydrated: true,
+        session: sessionAt(new Date('2026-07-29T12:00:00.000Z')),
+      }),
+    ).toBe('already_active');
   });
 });
