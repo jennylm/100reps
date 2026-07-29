@@ -14,7 +14,7 @@ create table if not exists public.activities (
   rep_type text check (rep_type in ('time', 'goal')),
   session_length_id text,
   goal_definition text,
-  visibility text not null default 'public' check (visibility in ('public', 'private')),
+  visibility text not null default 'private' check (visibility in ('public', 'private')),
   goal integer not null default 100,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

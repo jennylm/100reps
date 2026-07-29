@@ -48,5 +48,5 @@ export const INITIAL_ADD_ACTIVITY_DRAFT: AddActivityDraft = {
   repType: 'time',
   sessionLengthId: '45',
   goalDefinition: '1 piece',
-  visibility: 'public',
+  visibility: 'private',
 };
