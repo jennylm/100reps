@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFF6F4"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hundredreps.app"
@@ -23,14 +18,25 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.hundredreps.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#FFF6F4",
+          "imageWidth": 200
+        }
+      ],
       [
         "expo-image-picker",
         {
@@ -46,7 +52,14 @@
           "sounds": [],
           "defaultChannel": "timed-reps"
         }
-      ]
-    ]
+      ],
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "19f0072a-6b91-4b0f-9764-b63e8e7e4306"
+      }
+    },
+    "owner": "jennylm84"
   }
 }
