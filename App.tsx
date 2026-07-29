@@ -29,6 +29,7 @@ import { ActivityDetailScreen } from './src/screens/ActivityDetailScreen';
 import { AddActivityScreen } from './src/screens/add-activity/AddActivityScreen';
 import { AuthScreen } from './src/screens/auth/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { ProgressScreen } from './src/screens/ProgressScreen';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { colors } from './src/theme/colors';
 import type { Activity, AddActivityDraft, Screen } from './src/types';
@@ -102,6 +103,16 @@ function AppShell({
             onDeleteActivity={() => {
               void onDeleteActivity(selected.id);
               goHome();
+            }}
+          />
+        ) : null}
+
+        {!loadingActivities && screen === 'progress' ? (
+          <ProgressScreen
+            activities={activities}
+            onSelectActivity={(id) => {
+              setSelectedId(id);
+              setScreen('detail');
             }}
           />
         ) : null}

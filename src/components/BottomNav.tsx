@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import type { Screen } from '../types';
-import { HomeIcon, PeopleIcon } from './NavIcons';
+import { HomeIcon, PeopleIcon, ProgressIcon } from './NavIcons';
 
 type Props = {
   screen: Screen;
@@ -10,7 +10,8 @@ type Props = {
 };
 
 const TABS = [
-  { id: 'home' as const, label: 'My Reps', Icon: HomeIcon },
+  { id: 'home' as const, label: 'Home', Icon: HomeIcon },
+  { id: 'progress' as const, label: 'My Progress', Icon: ProgressIcon },
   { id: 'community' as const, label: 'Community', Icon: PeopleIcon },
 ];
 

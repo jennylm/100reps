@@ -1,4 +1,4 @@
-export type Screen = 'home' | 'detail' | 'community' | 'add';
+export type Screen = 'home' | 'detail' | 'progress' | 'community' | 'add';
 
 export interface Rep {
   id: string;

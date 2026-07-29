@@ -27,6 +27,34 @@ export function HomeIcon({ active }: IconProps) {
   );
 }
 
+export function ProgressIcon({ active }: IconProps) {
+  const stroke = active ? colors.text : colors.muted;
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 20V4"
+        stroke={stroke}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M3 20h18"
+        stroke={stroke}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M6 16l4-5 4 3 5-8"
+        stroke={stroke}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={19} cy={6} r={1.4} fill={stroke} />
+    </Svg>
+  );
+}
+
 export function PeopleIcon({ active }: IconProps) {
   const stroke = active ? colors.text : colors.muted;
   return (
