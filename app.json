@@ -37,6 +37,15 @@
           "photosPermission": "Allow 100 Reps to attach photo evidence to your reps.",
           "cameraPermission": "Allow 100 Reps to take photo evidence for your reps."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#FAA151",
+          "sounds": [],
+          "defaultChannel": "timed-reps"
+        }
       ]
     ]
   }

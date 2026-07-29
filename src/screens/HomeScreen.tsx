@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActivityCard } from '../components/ActivityCard';
+import { affirmationForDate } from '../data/affirmations';
+import { useCurrentDay } from '../hooks/useCurrentDay';
 import { useAuth } from '../state/AuthContext';
 import { colors } from '../theme/colors';
 import type { Activity } from '../types';
@@ -20,10 +22,28 @@ function formatHeaderDate(date: Date): string {
   });
 }
 
+function isSameLocalDay(left: Date, right: Date): boolean {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
 export function HomeScreen({ activities, onSelect, onAdd }: Props) {
   const scrollRef = useRef<ScrollView>(null);
   const { user, signOut } = useAuth();
-  const total = activities.reduce((sum, item) => sum + item.reps, 0);
+  const currentDay = useCurrentDay();
+  const hasPractisedToday = activities.some((activity) =>
+    activity.log.some((rep) => {
+      const loggedAt = new Date(rep.loggedAt);
+      return (
+        !Number.isNaN(loggedAt.getTime()) &&
+        isSameLocalDay(loggedAt, currentDay)
+      );
+    }),
+  );
+  const affirmation = affirmationForDate(currentDay, hasPractisedToday);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -51,7 +71,7 @@ export function HomeScreen({ activities, onSelect, onAdd }: Props) {
     >
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.date}>{formatHeaderDate(new Date())}</Text>
+          <Text style={styles.date}>{formatHeaderDate(currentDay)}</Text>
           <Pressable
             onPress={onAccountPress}
             hitSlop={8}
@@ -66,15 +86,12 @@ export function HomeScreen({ activities, onSelect, onAdd }: Props) {
         </View>
       </View>
 
-      <View style={styles.summary}>
-        <View style={[styles.summaryCell, styles.summaryCellLeft]}>
-          <Text style={styles.summaryLabel}>Total reps</Text>
-          <Text style={styles.summaryValue}>{total}</Text>
+      <View style={styles.affirmationCard}>
+        <View style={styles.affirmationHeader}>
+          <View style={styles.affirmationDot} />
+          <Text style={styles.affirmationLabel}>For today</Text>
         </View>
-        <View style={styles.summaryCell}>
-          <Text style={styles.summaryLabel}>Activities</Text>
-          <Text style={styles.summaryValue}>{activities.length}</Text>
-        </View>
+        <Text style={styles.affirmationText}>“{affirmation}”</Text>
       </View>
 
       <Text style={styles.sectionLabel}>Activities</Text>
@@ -148,43 +165,44 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 40,
   },
-  summary: {
+  affirmationCard: {
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 17,
+    paddingHorizontal: 18,
     marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: 'rgba(60,40,10,1)',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 1,
   },
-  summaryCell: {
-    flex: 1,
-    paddingLeft: 16,
+  affirmationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginBottom: 7,
   },
-  summaryCellLeft: {
-    borderRightWidth: 1,
-    borderRightColor: colors.faint,
-    paddingRight: 16,
-    paddingLeft: 0,
+  affirmationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.brand.pink,
   },
-  summaryLabel: {
+  affirmationLabel: {
     fontSize: 11,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: 'Outfit_500Medium',
     color: colors.muted,
-    marginBottom: 3,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
   },
-  summaryValue: {
-    fontFamily: 'DMMono_500Medium',
-    fontSize: 26,
+  affirmationText: {
+    fontFamily: 'Fraunces_300Light_Italic',
+    fontSize: 18,
+    lineHeight: 26,
     color: colors.text,
-    lineHeight: 28,
   },
   sectionLabel: {
     fontSize: 11,

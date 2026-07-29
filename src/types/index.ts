@@ -1,4 +1,4 @@
-export type Screen = 'home' | 'detail' | 'progress' | 'community' | 'add';
+export type Screen = 'home' | 'detail' | 'progress' | 'community' | 'add' | 'timer';
 
 export interface Rep {
   id: string;
@@ -9,6 +9,8 @@ export interface Rep {
   imageUrl?: string;
   /** Storage path when synced to Supabase */
   imagePath?: string;
+  /** Active practice duration in seconds when logged from a timed session */
+  durationSeconds?: number;
 }
 
 export interface Activity {

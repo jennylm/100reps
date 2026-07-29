@@ -1,6 +1,12 @@
 import type { Activity, Rep } from '../types';
+import { parseSessionMinutes } from './sessionDuration';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MIN_TIME_PERSONALITY_REPS = 8;
+
+export type TimeBand = 'morning' | 'afternoon' | 'evening' | 'night';
+
+export type TimeBandCounts = Record<TimeBand, number>;
 
 export type ProgressRep = Rep & {
   activityId: string;
@@ -29,8 +35,8 @@ export type ProgressStats = {
   streak: number;
   bestDay: string | null;
   timePersonality: string | null;
-  morningReps: number;
-  eveningReps: number;
+  dominantTimeBand: TimeBand | null;
+  timeBandCounts: TimeBandCounts;
   daysOnJourney: number | null;
   favouriteActivity: Activity | null;
   thisWeekReps: number;
@@ -55,15 +61,50 @@ function dateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function parseSessionMinutes(sessionLengthId: string | undefined): number {
-  if (!sessionLengthId) return 0;
-  if (/^\d+$/.test(sessionLengthId)) return Number(sessionLengthId);
+function timeBandForHour(hour: number): TimeBand {
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 22) return 'evening';
+  return 'night';
+}
 
-  const hours = sessionLengthId.match(/(\d+(?:\.\d+)?)\s*(?:h|hour)/i);
-  const minutes = sessionLengthId.match(/(\d+)\s*(?:m|min)/i);
-  return Math.round(
-    (hours ? Number(hours[1]) * 60 : 0) + (minutes ? Number(minutes[1]) : 0),
+function timePersonalityForBand(band: TimeBand): string {
+  switch (band) {
+    case 'morning':
+      return 'an early bird';
+    case 'afternoon':
+      return 'an afternoon person';
+    case 'evening':
+      return 'an evening person';
+    case 'night':
+      return 'a night owl';
+  }
+}
+
+function dominantTimeBandFor(
+  counts: TimeBandCounts,
+  totalReps: number,
+): TimeBand | null {
+  if (totalReps < MIN_TIME_PERSONALITY_REPS) return null;
+
+  const ranked = (Object.entries(counts) as [TimeBand, number][]).sort(
+    (left, right) => right[1] - left[1],
   );
+  const [top, runnerUp] = ranked;
+  if (!top || top[1] === runnerUp?.[1] || top[1] / totalReps < 0.4) return null;
+  return top[0];
+}
+
+function timeBandSupportingText(
+  band: TimeBand,
+  count: number,
+  totalReps: number,
+): string {
+  const phrase =
+    band === 'night'
+      ? 'at night'
+      : `in the ${band}`;
+  return `${count} of ${totalReps} reps happen ${phrase}`;
 }
 
 function buildNarrative(input: Omit<ProgressStats, 'narrative' | 'cards' | 'fingerprint'>): string {
@@ -139,7 +180,12 @@ export function calculateProgressStats(
 
   const countsByDate = new Map<string, number>();
   const countsByWeekday = new Map<string, number>();
-  let morningReps = 0;
+  const timeBandCounts: TimeBandCounts = {
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
+  };
 
   for (const rep of allReps) {
     const loggedAt = new Date(rep.loggedAt);
@@ -147,7 +193,8 @@ export function calculateProgressStats(
     countsByDate.set(key, (countsByDate.get(key) ?? 0) + 1);
     const weekday = loggedAt.toLocaleDateString('en-GB', { weekday: 'long' });
     countsByWeekday.set(weekday, (countsByWeekday.get(weekday) ?? 0) + 1);
-    if (loggedAt.getHours() < 12) morningReps += 1;
+    const band = timeBandForHour(loggedAt.getHours());
+    timeBandCounts[band] += 1;
   }
 
   const days = Array.from({ length: 7 }, (_, index): ProgressDay => {
@@ -173,15 +220,10 @@ export function calculateProgressStats(
   const bestDay =
     [...countsByWeekday.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ??
     null;
-  const eveningReps = allReps.length - morningReps;
-  const timePersonality =
-    allReps.length === 0
-      ? null
-      : morningReps / allReps.length > 0.6
-        ? 'an early bird'
-        : morningReps / allReps.length < 0.4
-          ? 'a night owl'
-          : 'all-day consistent';
+  const dominantTimeBand = dominantTimeBandFor(timeBandCounts, allReps.length);
+  const timePersonality = dominantTimeBand
+    ? timePersonalityForBand(dominantTimeBand)
+    : null;
 
   const firstRep = allReps.at(-1);
   const daysOnJourney = firstRep
@@ -227,8 +269,8 @@ export function calculateProgressStats(
     streak,
     bestDay,
     timePersonality,
-    morningReps,
-    eveningReps,
+    dominantTimeBand,
+    timeBandCounts,
     daysOnJourney,
     favouriteActivity,
     thisWeekReps,
@@ -258,11 +300,15 @@ export function calculateProgressStats(
           color: '#82CFC5',
         }
       : null,
-    timePersonality
+    timePersonality && dominantTimeBand
       ? {
           label: 'You are',
           value: timePersonality,
-          supportingText: `${morningReps} morning vs ${eveningReps} evening reps`,
+          supportingText: timeBandSupportingText(
+            dominantTimeBand,
+            timeBandCounts[dominantTimeBand],
+            allReps.length,
+          ),
           color: '#FF99A7',
         }
       : null,
@@ -276,7 +322,7 @@ export function calculateProgressStats(
       : null,
     favouriteActivity
       ? {
-          label: 'Favourite activity',
+          label: 'Most practised activity',
           value: favouriteActivity.name,
           supportingText: `${favouriteActivity.reps} rep${favouriteActivity.reps === 1 ? '' : 's'} and counting`,
           color: favouriteActivity.color,

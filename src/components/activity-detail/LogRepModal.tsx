@@ -15,10 +15,13 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme/colors';
 import { screenImageForSafety } from '../../utils/safeSearch';
+import { formatPractisedDuration } from '../../utils/sessionDuration';
 
 export type LogRepPayload = {
   note: string;
   imageUrl?: string;
+  durationSeconds?: number;
+  loggedAt?: string;
 };
 
 type Props = {
@@ -27,6 +30,8 @@ type Props = {
   nextRepNumber: number;
   goal: number;
   accentColor: string;
+  /** When set, this is a timed-session confirmation rather than a manual log. */
+  practisedSeconds?: number | null;
   onClose: () => void;
   onSubmit: (payload: LogRepPayload) => void;
 };
@@ -50,6 +55,7 @@ function LogRepForm({
   nextRepNumber,
   goal,
   accentColor,
+  practisedSeconds,
   onClose,
   onSubmit,
 }: Omit<Props, 'visible'>) {
@@ -57,6 +63,8 @@ function LogRepForm({
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [stampLabel] = useState(() => formatStampLabel(new Date()));
   const [screening, setScreening] = useState(false);
+  const isTimedConfirm =
+    practisedSeconds != null && practisedSeconds >= 0;
 
   const acceptScreenedPhoto = async (uri: string) => {
     setScreening(true);
@@ -120,7 +128,9 @@ function LogRepForm({
   return (
     <>
       <View style={styles.handle} />
-      <Text style={styles.title}>Log a Rep</Text>
+      <Text style={styles.title}>
+        {isTimedConfirm ? 'Count this rep' : 'Log a Rep'}
+      </Text>
       <Text style={styles.subtitle}>
         {activityName} ·{' '}
         <Text style={[styles.repHighlight, { color: accentColor }]}>
@@ -129,9 +139,18 @@ function LogRepForm({
         of {goal}
       </Text>
 
-      <View style={styles.dateBox}>
-        <Text style={styles.dateText}>{stampLabel}</Text>
-      </View>
+      {isTimedConfirm ? (
+        <View style={[styles.dateBox, styles.practisedBox]}>
+          <Text style={styles.practisedLabel}>You practised for</Text>
+          <Text style={[styles.practisedValue, { color: accentColor }]}>
+            {formatPractisedDuration(practisedSeconds)}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.dateBox}>
+          <Text style={styles.dateText}>{stampLabel}</Text>
+        </View>
+      )}
 
       <TextInput
         value={note}
@@ -172,6 +191,7 @@ function LogRepForm({
           onSubmit({
             note: note.trim(),
             imageUrl: imageUri ?? undefined,
+            durationSeconds: isTimedConfirm ? practisedSeconds : undefined,
           })
         }
         disabled={screening}
@@ -193,6 +213,7 @@ export function LogRepModal({
   nextRepNumber,
   goal,
   accentColor,
+  practisedSeconds = null,
   onClose,
   onSubmit,
 }: Props) {
@@ -211,11 +232,12 @@ export function LogRepModal({
         <View style={styles.sheet}>
           {visible ? (
             <LogRepForm
-              key={`log-${nextRepNumber}`}
+              key={`log-${nextRepNumber}-${practisedSeconds ?? 'manual'}`}
               activityName={activityName}
               nextRepNumber={nextRepNumber}
               goal={goal}
               accentColor={accentColor}
+              practisedSeconds={practisedSeconds}
               onClose={onClose}
               onSubmit={onSubmit}
             />
@@ -271,6 +293,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 16,
+  },
+  practisedBox: {
+    gap: 4,
+  },
+  practisedLabel: {
+    fontFamily: 'Outfit_400Regular',
+    fontSize: 13,
+    color: colors.muted,
+  },
+  practisedValue: {
+    fontFamily: 'Fraunces_400Regular',
+    fontSize: 22,
   },
   dateText: {
     fontFamily: 'DMMono_500Medium',

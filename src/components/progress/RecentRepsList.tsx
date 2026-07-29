@@ -22,7 +22,10 @@ export function RecentRepsList({ reps, onSelectActivity }: Props) {
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}
           >
             <View style={[styles.imageFallback, { backgroundColor: rep.activityColor }]}>
-              <Image source={{ uri: rep.activityPhoto }} style={styles.image} />
+              <Image
+                source={{ uri: rep.imageUrl || rep.activityPhoto }}
+                style={styles.image}
+              />
               <View style={[styles.tint, { backgroundColor: `${rep.activityColor}22` }]} />
             </View>
             <View style={styles.content}>

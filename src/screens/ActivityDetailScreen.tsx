@@ -18,8 +18,12 @@ import type { Activity } from '../types';
 
 type Props = {
   activity: Activity;
+  hasActiveTimer?: boolean;
+  activeTimerActivityId?: string | null;
   onBack: () => void;
   onLogRep: (payload: LogRepPayload) => void;
+  onStartTimedRep: () => void;
+  onOpenActiveTimer: () => void;
   onEditRep: (repId: string, note: string) => void;
   onDeleteRep: (repId: string) => void;
   onEditActivity: (payload: EditActivityPayload) => void | Promise<void>;
@@ -28,8 +32,12 @@ type Props = {
 
 export function ActivityDetailScreen({
   activity,
+  hasActiveTimer = false,
+  activeTimerActivityId = null,
   onBack,
   onLogRep,
+  onStartTimedRep,
+  onOpenActiveTimer,
   onEditRep,
   onDeleteRep,
   onEditActivity,
@@ -37,6 +45,7 @@ export function ActivityDetailScreen({
 }: Props) {
   const accent = activity.color || colors.accent;
   const nextRep = activity.reps + 1;
+  const isTimed = activity.repType === 'time';
   const [logging, setLogging] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingRepId, setEditingRepId] = useState<string | null>(null);
@@ -54,6 +63,18 @@ export function ActivityDetailScreen({
   }, [activity.log, activity.reps, editingRepId]);
 
   const confirmDeleteActivity = () => {
+    if (hasActiveTimer && activeTimerActivityId === activity.id) {
+      Alert.alert(
+        'Timer still running',
+        'Discard or finish the timed session for this activity before deleting it.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open timer', onPress: onOpenActiveTimer },
+        ],
+      );
+      return;
+    }
+
     Alert.alert(
       'Delete activity',
       `Delete “${activity.name}” and all of its reps? This can’t be undone.`,
@@ -66,6 +87,23 @@ export function ActivityDetailScreen({
         },
       ],
     );
+  };
+
+  const handleStartTimedRep = () => {
+    if (hasActiveTimer) {
+      Alert.alert(
+        'A timer is already running',
+        activeTimerActivityId === activity.id
+          ? 'Open the active session to continue.'
+          : 'You can only run one timed session at a time. Open the active timer, or finish it first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open timer', onPress: onOpenActiveTimer },
+        ],
+      );
+      return;
+    }
+    onStartTimedRep();
   };
 
   return (
@@ -117,7 +155,9 @@ export function ActivityDetailScreen({
       <DetailFooter
         nextRepNumber={nextRep}
         color={accent}
+        isTimed={isTimed}
         onLogRep={() => setLogging(true)}
+        onStartTimedRep={isTimed ? handleStartTimedRep : undefined}
       />
 
       <LogRepModal

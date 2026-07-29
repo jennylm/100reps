@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,6 +15,7 @@ import {
 } from '@expo-google-fonts/outfit';
 import { DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import { BottomNav } from './src/components/BottomNav';
+import { ActiveTimerBanner } from './src/components/timer/ActiveTimerBanner';
 import {
   createActivity,
   deleteActivity,
@@ -30,6 +31,11 @@ import { AddActivityScreen } from './src/screens/add-activity/AddActivityScreen'
 import { AuthScreen } from './src/screens/auth/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
+import { TimerScreen } from './src/screens/TimerScreen';
+import {
+  ActiveTimerProvider,
+  useActiveTimer,
+} from './src/state/ActiveTimerContext';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { colors } from './src/theme/colors';
 import type { Activity, AddActivityDraft, Screen } from './src/types';
@@ -62,13 +68,63 @@ function AppShell({
 }: ShellProps) {
   const [screen, setScreen] = useState<Screen>('home');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { session, snapshot, startTimer, clearAfterConfirm } = useActiveTimer();
 
   const selected = activities.find((item) => item.id === selectedId) ?? null;
-  const hideNav = screen === 'add';
+  const timerActivity =
+    activities.find((item) => item.id === session?.activity.id) ?? null;
+  const hideNav = screen === 'add' || screen === 'timer';
+  const showTimerBanner =
+    !loadingActivities && Boolean(session && snapshot) && screen !== 'timer';
 
   const goHome = () => {
     setSelectedId(null);
     setScreen('home');
+  };
+
+  const openTimer = () => setScreen('timer');
+
+  const handleStartTimedRep = async (activity: Activity) => {
+    const result = await startTimer(activity);
+    if (result.ok) {
+      setSelectedId(activity.id);
+      setScreen('timer');
+      return;
+    }
+    if (result.reason === 'already_active') {
+      Alert.alert(
+        'A timer is already running',
+        'You can only run one timed session at a time.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open timer', onPress: openTimer },
+        ],
+      );
+      return;
+    }
+    if (result.reason === 'invalid_duration') {
+      Alert.alert(
+        'Set a session length',
+        'Edit this activity and choose how long a timed rep should last.',
+      );
+    }
+  };
+
+  const handleConfirmTimedRep = async (payload: LogRepPayload) => {
+    if (!session) return;
+    const activityId = session.activity.id;
+    try {
+      await onLogRep(activityId, payload);
+      await clearAfterConfirm();
+      setSelectedId(activityId);
+      setScreen('detail');
+    } catch (err) {
+      console.warn('Failed to confirm timed rep', err);
+      Alert.alert(
+        'Couldn’t save this rep',
+        'Your timer is still here — try counting it again.',
+      );
+    }
   };
 
   return (
@@ -95,8 +151,14 @@ function AppShell({
         {!loadingActivities && screen === 'detail' && selected ? (
           <ActivityDetailScreen
             activity={selected}
+            hasActiveTimer={Boolean(session)}
+            activeTimerActivityId={session?.activity.id ?? null}
             onBack={goHome}
             onLogRep={(payload) => onLogRep(selected.id, payload)}
+            onStartTimedRep={() => {
+              void handleStartTimedRep(selected);
+            }}
+            onOpenActiveTimer={openTimer}
             onEditRep={(repId, note) => onEditRep(selected.id, repId, note)}
             onDeleteRep={(repId) => onDeleteRep(selected.id, repId)}
             onEditActivity={(payload) => onEditActivity(selected.id, payload)}
@@ -133,7 +195,26 @@ function AppShell({
             }}
           />
         ) : null}
+
+        {!loadingActivities && screen === 'timer' ? (
+          <TimerScreen
+            nextRepNumber={(timerActivity?.reps ?? session?.activity.reps ?? 0) + 1}
+            goal={timerActivity?.goal ?? session?.activity.goal ?? 100}
+            onBack={() => {
+              if (session) {
+                setSelectedId(session.activity.id);
+                setScreen('detail');
+                return;
+              }
+              goHome();
+            }}
+            onConfirmRep={handleConfirmTimedRep}
+          />
+        ) : null}
       </View>
+      {showTimerBanner && snapshot ? (
+        <ActiveTimerBanner snapshot={snapshot} onPress={openTimer} />
+      ) : null}
       {!hideNav && !loadingActivities ? (
         <BottomNav screen={screen} setScreen={setScreen} />
       ) : null}
@@ -221,6 +302,8 @@ function AuthenticatedApp() {
         activityId,
         note: payload.note,
         imagePath,
+        durationSeconds: payload.durationSeconds ?? null,
+        loggedAt: payload.loggedAt ?? null,
       });
       setActivities((prev) =>
         prev.map((item) => {
@@ -292,16 +375,18 @@ function AuthenticatedApp() {
   }, []);
 
   return (
-    <AppShell
-      activities={activities}
-      loadingActivities={loadingActivities}
-      onCreated={handleCreated}
-      onLogRep={handleLogRep}
-      onEditRep={handleEditRep}
-      onDeleteRep={handleDeleteRep}
-      onEditActivity={handleEditActivity}
-      onDeleteActivity={handleDeleteActivity}
-    />
+    <ActiveTimerProvider>
+      <AppShell
+        activities={activities}
+        loadingActivities={loadingActivities}
+        onCreated={handleCreated}
+        onLogRep={handleLogRep}
+        onEditRep={handleEditRep}
+        onDeleteRep={handleDeleteRep}
+        onEditActivity={handleEditActivity}
+        onDeleteActivity={handleDeleteActivity}
+      />
+    </ActiveTimerProvider>
   );
 }
 

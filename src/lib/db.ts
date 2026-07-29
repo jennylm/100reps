@@ -34,6 +34,7 @@ export type RepRow = {
   user_id: string;
   note: string;
   image_path: string | null;
+  duration_seconds: number | null;
   logged_at: string;
   created_at: string;
 };
@@ -69,6 +70,8 @@ async function mapRep(row: RepRow): Promise<Rep> {
     note: row.note ?? '',
     imageUrl,
     imagePath: row.image_path ?? undefined,
+    durationSeconds:
+      row.duration_seconds == null ? undefined : row.duration_seconds,
   };
 }
 
@@ -189,15 +192,25 @@ export async function insertRep(input: {
   activityId: string;
   note: string;
   imagePath?: string | null;
+  durationSeconds?: number | null;
+  loggedAt?: string | null;
 }): Promise<Rep> {
+  const row: Record<string, unknown> = {
+    user_id: input.userId,
+    activity_id: input.activityId,
+    note: input.note,
+    image_path: input.imagePath ?? null,
+  };
+  if (input.durationSeconds != null) {
+    row.duration_seconds = input.durationSeconds;
+  }
+  if (input.loggedAt) {
+    row.logged_at = input.loggedAt;
+  }
+
   const { data, error } = await supabase
     .from('reps')
-    .insert({
-      user_id: input.userId,
-      activity_id: input.activityId,
-      note: input.note,
-      image_path: input.imagePath ?? null,
-    })
+    .insert(row)
     .select('*')
     .single();
 
