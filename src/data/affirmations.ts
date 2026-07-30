@@ -9,32 +9,44 @@ type DailyAffirmation = {
  */
 export const DAILY_AFFIRMATIONS: DailyAffirmation[] = [
   {
-    beforePractice: 'One small start is enough.',
-    afterPractice: 'You showed up today. Let that count.',
+    beforePractice: "Ready when you are.",
+    afterPractice: "Another page in your journey.",
   },
   {
-    beforePractice: 'You do not need perfect conditions. Begin where you are.',
-    afterPractice: 'Progress can be quiet and still be real.',
+    beforePractice: "What will today's rep look like?",
+    afterPractice: "One more moment captured.",
   },
   {
-    beforePractice: 'Small repetitions become remarkable things.',
-    afterPractice: "Today's rep is part of something larger.",
+    beforePractice: "No pressure. Just begin.",
+    afterPractice: "One more rep added to your journey.",
   },
   {
-    beforePractice: 'Make something today that yesterday did not have.',
-    afterPractice: 'You made something today that yesterday did not have.',
+    beforePractice: "Let's see where today's practice leads.",
+    afterPractice: "That's one you'll be able to look back on.",
   },
   {
-    beforePractice: 'A little attention, given often, changes everything.',
-    afterPractice: 'The attention you gave today matters.',
+    beforePractice: "Every journey is built one rep at a time.",
+    afterPractice: "Your journey keeps growing.",
   },
   {
-    beforePractice: 'There is no perfect rep. There is only the next one.',
-    afterPractice: 'Done is a kind of beautiful.',
+    beforePractice: "Today's rep doesn't have to be perfect.",
+    afterPractice: "However it went, you showed up.",
   },
   {
-    beforePractice: 'Let curiosity lead; progress can follow.',
-    afterPractice: 'You followed your curiosity today.',
+    beforePractice: "A little practice is enough.",
+    afterPractice: "See you next time.",
+  },
+  {
+    beforePractice: "The next rep is the only one that matters.",
+    afterPractice: "Another step taken.",
+  },
+  {
+    beforePractice: "Begin where you are.",
+    afterPractice: "Today's effort is part of the bigger picture.",
+  },
+  {
+    beforePractice: "Take your time.",
+    afterPractice: "Your story is one rep longer.",
   }
 ];
 
