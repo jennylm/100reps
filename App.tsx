@@ -285,7 +285,7 @@ function AppShell({
 }
 
 function FontGate({ children }: { children: ReactNode }) {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Fraunces_300Light_Italic,
     Fraunces_400Regular,
     Outfit_400Regular,
@@ -293,19 +293,36 @@ function FontGate({ children }: { children: ReactNode }) {
     Outfit_600SemiBold,
     DMMono_500Medium,
   });
+  const [fontWaitExpired, setFontWaitExpired] = useState(false);
+  const fontGateReady = fontsLoaded || Boolean(fontError) || fontWaitExpired;
 
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
-      await SplashScreen.hideAsync();
+  useEffect(() => {
+    if (fontGateReady) return;
+
+    const timeout = setTimeout(() => setFontWaitExpired(true), 8000);
+    return () => clearTimeout(timeout);
+  }, [fontGateReady]);
+
+  useEffect(() => {
+    if (!fontGateReady) return;
+
+    if (fontError) {
+      console.warn('Failed to load custom fonts; using system fallbacks', fontError);
+    } else if (fontWaitExpired && !fontsLoaded) {
+      console.warn('Custom font loading timed out; using system fallbacks');
     }
-  }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
+    SplashScreen.hideAsync().catch((error) => {
+      console.warn('Failed to hide splash screen', error);
+    });
+  }, [fontError, fontGateReady, fontsLoaded, fontWaitExpired]);
+
+  if (!fontGateReady) {
     return null;
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']} onLayout={onLayoutRootView}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       {children}
     </SafeAreaView>
   );
