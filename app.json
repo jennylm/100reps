@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "100 Reps",
+    "name": "HundredReps",
     "slug": "100reps",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,6 +10,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.hundredreps.app",
       "infoPlist": {
+        "CFBundleDisplayName": "100 Reps",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
