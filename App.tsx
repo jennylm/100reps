@@ -22,6 +22,7 @@ import {
 } from '@expo-google-fonts/outfit';
 import { DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import { BottomNav } from './src/components/BottomNav';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { ActiveTimerBanner } from './src/components/timer/ActiveTimerBanner';
 import {
   createActivity,
@@ -512,13 +513,15 @@ function AuthGate() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <FontGate>
-          <AuthGate />
-        </FontGate>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <FontGate>
+            <AuthGate />
+          </FontGate>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 
